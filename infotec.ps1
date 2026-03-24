@@ -2,11 +2,11 @@
 # SCRIPT UNIVERSAL DE APPS MICROSOFT STORE
 # INFOTEC - POS FORMATACAO
 # ==========================================
-
+Clear-Host
 Write-Host ""
 Write-Host "Preparando sistema..." -ForegroundColor Cyan
 Write-Host ""
-
+$ErrorActionPreference = "SilentlyContinue"
 #########################################################
 # VERIFICAR / INSTALAR WINGET
 #########################################################
@@ -56,7 +56,9 @@ Write-Host "Sincronizando Microsoft Store..." -ForegroundColor Cyan
 
 Start-Process "ms-windows-store://downloadsandupdates"
 
-Start-Sleep 40
+Start-Sleep 30
+wsreset -i
+Start-Sleep 15
 
 #########################################################
 # CORRIGIR REPOSITORIOS WINGET
@@ -72,6 +74,12 @@ Write-Host "Atualizando fontes do Winget..." -ForegroundColor Cyan
 
 winget source update
 
+winget upgrade --all `
+--accept-package-agreements `
+--accept-source-agreements `
+--silent `
+--disable-interactivity
+
 Start-Sleep 3
 
 #########################################################
@@ -85,16 +93,23 @@ param (
 [string]$ID
 )
 
-Write-Host "Instalando $Nome..." -ForegroundColor Green
+$check = winget list --id $ID -e | Out-String
 
-winget install `
---id $ID `
--e `
---source msstore `
---silent `
---accept-package-agreements `
---accept-source-agreements `
---disable-interactivity
+if ($check) {
+    Write-Host "$Nome já instalado." -ForegroundColor Yellow
+}
+else {
+    Write-Host "Instalando $Nome..." -ForegroundColor Green
+
+    winget install `
+    --id $ID `
+    -e `
+    --source msstore `
+    --silent `
+    --accept-package-agreements `
+    --accept-source-agreements `
+    --disable-interactivity
+}
 
 }
 
@@ -118,34 +133,71 @@ Instalar-App "Microsoft Photos" "9WZDNCRFJBH4"
 # INSTALAR WHATSAPP
 #########################################################
 
-Write-Host "Instalando WhatsApp..." -ForegroundColor Green
+#########################################################
+# INSTALAR / ATUALIZAR WHATSAPP
+#########################################################
 
-$process = Start-Process winget -ArgumentList @(
-"install",
-"--id","WhatsApp.WhatsApp",
-"-e",
-"--silent",
-"--accept-package-agreements",
-"--accept-source-agreements",
-"--disable-interactivity"
-) -PassThru
+Write-Host "Verificando WhatsApp..." -ForegroundColor Cyan
 
-$timeout = 300
-$elapsed = 0
+# Verifica versão Store (confiável)
+$wppStore = Get-AppxPackage *WhatsApp*
 
-while (!$process.HasExited -and $elapsed -lt $timeout) {
-    Start-Sleep 2
-    $elapsed += 2
+# Verifica versão Winget
+$wppWinget = winget list --id WhatsApp.WhatsApp -e | Out-String
+
+if ($wppStore -or $wppWinget -match "WhatsApp") {
+
+    Write-Host "WhatsApp já instalado. Verificando atualização..." -ForegroundColor Yellow
+
+    winget upgrade --id WhatsApp.WhatsApp `
+    --source winget `
+    -e `
+    --silent `
+    --accept-package-agreements `
+    --accept-source-agreements `
+    --disable-interactivity
+
+    Write-Host "WhatsApp verificado/atualizado." -ForegroundColor Green
+
+} else {
+
+    Write-Host "WhatsApp não instalado. Instalando via Winget..." -ForegroundColor Green
+
+    winget install --id WhatsApp.WhatsApp `
+    --source winget `
+    -e `
+    --silent `
+    --accept-package-agreements `
+    --accept-source-agreements `
+    --disable-interactivity
+
+    if ($LASTEXITCODE -eq 0) {
+
+        Write-Host "WhatsApp instalado via Winget." -ForegroundColor Green
+
+    } else {
+
+        Write-Host "Falha no Winget. Tentando Microsoft Store..." -ForegroundColor Yellow
+
+        winget install 9NKSQGP7F2NH `
+        --source msstore `
+        --accept-package-agreements `
+        --accept-source-agreements `
+        --disable-interactivity
+
+        if ($LASTEXITCODE -eq 0) {
+
+            Write-Host "WhatsApp instalado via Microsoft Store." -ForegroundColor Green
+
+        } else {
+
+            Write-Host "Falha automática. Abrindo Store manual..." -ForegroundColor Red
+
+            Start-Process "ms-windows-store://pdp/?ProductId=9NKSQGP7F2NH"
+
+        }
+    }
 }
-
-if (!$process.HasExited) {
-    Write-Host "Tempo limite atingido. Continuando script..." -ForegroundColor Yellow
-    $process.Kill()
-}
-else {
-    Write-Host "WhatsApp instalado." -ForegroundColor Green
-}
-
 #########################################################
 
 Write-Host ""
