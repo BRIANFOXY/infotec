@@ -70,7 +70,7 @@ Start-Sleep 3
 
 Write-Host "Atualizando fontes do Winget..." -ForegroundColor Cyan
 
-winget source update --accept-source-agreements
+winget source update
 
 Start-Sleep 3
 
@@ -108,7 +108,7 @@ Write-Host "# INSTALACAO DOS APLICATIVOS"
 Write-Host "############################################"
 Write-Host ""
 
-Instalar-App "Esboço e Captura" "9MZ95KL8MR0L"
+Instalar-App "EsboÃ§o e Captura" "9MZ95KL8MR0L"
 
 Instalar-App "Windows Camera" "9WZDNCRFJBBG"
 
